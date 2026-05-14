@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { GitBranch, Sparkles, Terminal, Loader2 } from "lucide-react";
+import { GitBranch, Sparkles, Terminal, Loader2, Copy, Download } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -40,6 +41,30 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopy = async () => {
+    if (!markdown) return;
+    try {
+      await navigator.clipboard.writeText(markdown);
+      toast.success("Copied to clipboard!");
+    } catch (err) {
+      toast.error("Failed to copy to clipboard.");
+    }
+  };
+
+  const handleDownload = () => {
+    if (!markdown) return;
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "README.md";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Download started!");
   };
 
   return (
@@ -104,10 +129,28 @@ export default function Home() {
         {/* Markdown Preview */}
         {markdown && (
           <div className="bg-zinc-900/50 border border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-2xl text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
-              <Sparkles className="w-5 h-5 mr-2 text-emerald-400" />
-              Generated README.md
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <Sparkles className="w-5 h-5 mr-2 text-emerald-400" />
+                Generated README.md
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="inline-flex items-center justify-center p-2 border border-zinc-700 rounded-md text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                  title="Copy to Clipboard"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="inline-flex items-center justify-center p-2 border border-zinc-700 rounded-md text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                  title="Download README.md"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
             <div className="prose prose-invert max-w-none prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-zinc-800 prose-headings:text-zinc-100 prose-a:text-emerald-400 hover:prose-a:text-emerald-300 prose-strong:text-zinc-100">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {markdown}
