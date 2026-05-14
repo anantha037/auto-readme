@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Github, Sparkles, Terminal, Loader2 } from "lucide-react";
+import { GitBranch, Sparkles, Terminal, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -67,7 +67,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Github className="h-5 w-5 text-zinc-500" />
+                <GitBranch className="h-5 w-5 text-zinc-500" />
               </div>
               <input
                 type="url"
