@@ -14,7 +14,7 @@ export async function generateReadme(repoData: RepoData): Promise<string> {
     throw new Error("Gemini API key is not configured.");
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const systemPrompt = `You are an Expert Technical Writer and Developer. Your task is to generate a comprehensive, professional, and visually appealing README.md file for a GitHub repository.
 
