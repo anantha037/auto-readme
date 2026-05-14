@@ -2,19 +2,21 @@
 
 import React, { useState } from "react";
 import { Github, Sparkles, Terminal, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugData, setDebugData] = useState<any>(null); // Temp for Phase 2
+  const [markdown, setMarkdown] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!url) return;
     
     setLoading(true);
     setError(null);
-    setDebugData(null);
+    setMarkdown(null);
 
     try {
       const res = await fetch("/api/generate", {
@@ -28,11 +30,10 @@ export default function Home() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch repository data");
+        throw new Error(data.error || "Failed to generate README");
       }
 
-      // In Phase 2, we just store the returned JSON for visualization
-      setDebugData(data.data);
+      setMarkdown(data.markdown);
 
     } catch (err: any) {
       setError(err.message);
@@ -43,7 +44,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col items-center justify-center p-6 sm:p-12">
-      <div className="max-w-4xl w-full space-y-8 text-center">
+      <div className={`max-w-4xl w-full space-y-8 text-center transition-all duration-500 ${markdown ? 'mt-8' : ''}`}>
         
         {/* Header */}
         <div className="space-y-4">
@@ -89,7 +90,7 @@ export default function Home() {
               ) : (
                 <Sparkles className="h-4 w-4 mr-2" />
               )}
-              {loading ? "Fetching Data..." : "Generate"}
+              {loading ? "Generating..." : "Generate"}
             </button>
           </div>
           
@@ -98,24 +99,22 @@ export default function Home() {
               {error}
             </div>
           )}
-
-          {/* Temporary Phase 2 Debug Output */}
-          {debugData && (
-            <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h3 className="text-sm font-medium text-zinc-400">Phase 2 Check - Fetched Data:</h3>
-              <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4 overflow-auto max-h-96">
-                <pre className="text-xs text-emerald-400">
-                  {JSON.stringify({
-                    owner: debugData.owner,
-                    repo: debugData.repo,
-                    total_root_items: debugData.tree.length,
-                    critical_files_fetched: debugData.files.map((f: any) => f.name)
-                  }, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Markdown Preview */}
+        {markdown && (
+          <div className="bg-zinc-900/50 border border-zinc-800 p-6 sm:p-8 rounded-2xl shadow-2xl text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+              <Sparkles className="w-5 h-5 mr-2 text-emerald-400" />
+              Generated README.md
+            </h3>
+            <div className="prose prose-invert max-w-none prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-zinc-800 prose-headings:text-zinc-100 prose-a:text-emerald-400 hover:prose-a:text-emerald-300 prose-strong:text-zinc-100">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {markdown}
+              </ReactMarkdown>
+            </div>
+          </div>
+        )}
 
       </div>
     </main>

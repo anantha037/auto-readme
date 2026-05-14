@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchRepoData } from "@/lib/github";
+import { generateReadme } from "@/lib/gemini";
 
 export async function POST(req: Request) {
   try {
@@ -14,17 +15,18 @@ export async function POST(req: Request) {
     console.log(`[API] Fetching data for: ${url}`);
     const repoData = await fetchRepoData(url);
     
-    // Server-side logging for verification as requested
     console.log(`[API] Successfully fetched data for ${repoData.owner}/${repoData.repo}`);
-    console.log(`[API] Root tree elements: ${repoData.tree.length}`);
     console.log(`[API] Critical files fetched: ${repoData.files.map(f => f.name).join(", ")}`);
 
-    // 2. Return the fetched data (Temporary for Phase 2 testing)
-    // Note: In Phase 3, we will pass this to Gemini instead of returning it.
+    // 2. Generate README using Gemini AI
+    console.log(`[API] Generating README via Gemini...`);
+    const readmeMarkdown = await generateReadme(repoData);
+    console.log(`[API] README generation complete.`);
+
+    // 3. Return the generated markdown
     return NextResponse.json({ 
       success: true, 
-      message: "Successfully fetched repository data",
-      data: repoData 
+      markdown: readmeMarkdown
     });
 
   } catch (error: any) {
