@@ -12,12 +12,35 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [markdown, setMarkdown] = useState<string | null>(null);
 
+  const isGithubUrl = (value: string) => {
+    try {
+      const url = new URL(value)
+
+      return (
+        url.protocol === "https:" &&
+        url.hostname === "github.com" &&
+        url.pathname.split("/").filter(Boolean).length >= 2
+      )
+    } catch {
+      return false
+    }
+  }
+
   const handleGenerate = async () => {
     if (!url) return;
-    
-    setLoading(true);
+
+
+
+
     setError(null);
     setMarkdown(null);
+
+    if (!isGithubUrl(url)) {
+      setError("Invalid Link")
+      return
+    }
+    
+    setLoading(true);
 
     try {
       const res = await fetch("/api/generate", {
@@ -71,7 +94,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col items-center justify-center p-6 sm:p-12">
       <div className={`max-w-4xl w-full space-y-8 text-center transition-all duration-500 ${markdown ? 'mt-8' : ''}`}>
-        
+
         {/* Header */}
         <div className="space-y-4">
           <div className="inline-flex items-center justify-center p-3 bg-zinc-900 rounded-full mb-4 border border-zinc-800">
@@ -119,7 +142,7 @@ export default function Home() {
               {loading ? "Generating..." : "Generate"}
             </button>
           </div>
-          
+
           {error && (
             <div className="mt-2 text-sm text-red-400 bg-red-950/50 border border-red-900/50 p-3 rounded-md">
               {error}
