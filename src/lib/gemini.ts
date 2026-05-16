@@ -1,17 +1,26 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { RepoData } from "./github";
 
 const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
 if (!apiKey) {
   console.warn("GOOGLE_GENERATIVE_AI_API_KEY is not set in environment variables");
 }
+if (!openRouterApiKey) {
+  console.warn("OPENROUTER_API_KEY is not set in environment variables");
+}
 
 const genAI = new GoogleGenerativeAI(apiKey || "");
+const openai = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: openRouterApiKey || "",
+});
 
 export async function generateReadme(repoData: RepoData): Promise<string> {
-  if (!apiKey) {
-    throw new Error("Gemini API key is not configured.");
+  if (!apiKey && !openRouterApiKey) {
+    throw new Error("No AI API keys are configured.");
   }
 
   const generationConfig = { temperature: 0.3 };
@@ -48,30 +57,54 @@ Output ONLY the markdown content. Do not wrap the output in a markdown code bloc
     return text;
   };
 
+  async function fallbackToOpenRouter(): Promise<string> {
+    console.warn(`[AI] Triggering Ultimate Fallback: OpenRouter (meta-llama/llama-3.3-70b-instruct:free)...`);
+    if (!openRouterApiKey) {
+      throw new Error("Failed to generate README: Gemini failed and OpenRouter API key is missing.");
+    }
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        messages: [{ role: "system", content: systemPrompt }],
+        temperature: 0.3,
+      });
+
+      const text = response.choices[0]?.message?.content || "";
+      return processResponse(text);
+    } catch (openRouterError: any) {
+      console.error("[AI] OpenRouter Fallback completely failed:", openRouterError.message || openRouterError);
+      throw new Error("All AI providers failed to generate README.");
+    }
+  }
+
+  // Attempt 1: Gemini 2.5 Pro
   try {
-    console.log("[AI] Attempting generation with gemini-2.5-pro...");
+    console.log("[AI] Layer 1: Attempting generation with gemini-2.5-pro...");
     const result = await proModel.generateContent(systemPrompt);
     const response = await result.response;
     return processResponse(response.text());
   } catch (error: any) {
     const errorMsg = error.message || String(error);
-    
-    // Check for rate limit or server unavailable errors
+
+    // Attempt 2: Gemini 2.5 Flash on rate limits
     if (errorMsg.includes("503") || errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("unavailable")) {
-      console.warn(`[AI] gemini-2.5-pro unavailable or rate-limited. Error: ${errorMsg}`);
-      console.warn(`[AI] Falling back to gemini-2.5-flash...`);
-      
+      console.warn(`[AI] Layer 1 failed (gemini-2.5-pro rate-limited). Error: ${errorMsg}`);
+      console.warn(`[AI] Layer 2: Falling back to gemini-2.5-flash...`);
+
       try {
         const fallbackResult = await flashModel.generateContent(systemPrompt);
         const fallbackResponse = await fallbackResult.response;
         return processResponse(fallbackResponse.text());
       } catch (fallbackError: any) {
-        console.error("Error calling Gemini fallback API:", fallbackError);
-        throw new Error("Failed to generate README using fallback AI.");
+        console.error("[AI] Layer 2 failed (Gemini Flash error):", fallbackError.message || fallbackError);
+        // Attempt 3: OpenRouter
+        return await fallbackToOpenRouter();
       }
+    } else {
+      console.warn(`[AI] Layer 1 completely failed with unknown error: ${errorMsg}`);
+      // Attempt 3: OpenRouter
+      return await fallbackToOpenRouter();
     }
-    
-    console.error("Error calling Gemini API:", error);
-    throw new Error("Failed to generate README using AI.");
   }
 }
