@@ -21,7 +21,7 @@ export function parseGitHubUrl(url: string): { owner: string; repo: string } | n
     if (parts.length < 2) return null;
 
     return { owner: parts[0], repo: parts[1] };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -89,13 +89,20 @@ export async function fetchRepoData(url: string): Promise<RepoData> {
     throw new Error("Unexpected response from GitHub API");
   }
 
+  interface GitHubItem {
+    type: string;
+    name: string;
+    path: string;
+    download_url: string | null;
+  }
+
   // Extract root directory structure (just names to give the LLM context of what's inside)
-  const tree = contents.map((item: any) => `${item.type === "dir" ? "📁" : "📄"} ${item.name}`);
+  const tree = contents.map((item: GitHubItem) => `${item.type === "dir" ? "📁" : "📄"} ${item.name}`);
 
   // Find up to 5 critical files
   const filesToFetch = contents
-    .filter((item: any) => item.type === "file")
-    .filter((item: any) => CRITICAL_FILES.includes(item.name.toLowerCase()))
+    .filter((item: GitHubItem) => item.type === "file")
+    .filter((item: GitHubItem) => CRITICAL_FILES.includes(item.name.toLowerCase()))
     .slice(0, 5);
 
   const fetchedFiles: GitHubFile[] = [];

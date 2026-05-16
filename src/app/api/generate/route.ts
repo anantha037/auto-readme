@@ -29,10 +29,11 @@ export async function POST(req: Request) {
       markdown: readmeMarkdown
     });
 
-  } catch (error: any) {
-    console.error("[API] Error processing request:", error.message);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("[API] Error processing request:", errorMsg);
     return NextResponse.json(
-      { error: error.message || "An unexpected error occurred" }, 
+      { error: errorMsg || "An unexpected error occurred" }, 
       { status: 500 }
     );
   }

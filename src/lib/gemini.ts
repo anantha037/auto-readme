@@ -72,8 +72,9 @@ Output ONLY the markdown content. Do not wrap the output in a markdown code bloc
 
       const text = response.choices[0]?.message?.content || "";
       return processResponse(text);
-    } catch (openRouterError: any) {
-      console.error("[AI] OpenRouter Fallback completely failed:", openRouterError.message || openRouterError);
+    } catch (openRouterError: unknown) {
+      const errorMsg = openRouterError instanceof Error ? openRouterError.message : String(openRouterError);
+      console.error("[AI] OpenRouter Fallback completely failed:", errorMsg);
       throw new Error("All AI providers failed to generate README.");
     }
   }
@@ -84,8 +85,8 @@ Output ONLY the markdown content. Do not wrap the output in a markdown code bloc
     const result = await proModel.generateContent(systemPrompt);
     const response = await result.response;
     return processResponse(response.text());
-  } catch (error: any) {
-    const errorMsg = error.message || String(error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
 
     // Attempt 2: Gemini 2.5 Flash on rate limits
     if (errorMsg.includes("503") || errorMsg.includes("429") || errorMsg.includes("quota") || errorMsg.includes("unavailable")) {
@@ -96,8 +97,9 @@ Output ONLY the markdown content. Do not wrap the output in a markdown code bloc
         const fallbackResult = await flashModel.generateContent(systemPrompt);
         const fallbackResponse = await fallbackResult.response;
         return processResponse(fallbackResponse.text());
-      } catch (fallbackError: any) {
-        console.error("[AI] Layer 2 failed (Gemini Flash error):", fallbackError.message || fallbackError);
+      } catch (fallbackError: unknown) {
+        const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        console.error("[AI] Layer 2 failed (Gemini Flash error):", fallbackErrorMsg);
         // Attempt 3: OpenRouter
         return await fallbackToOpenRouter();
       }

@@ -36,8 +36,9 @@ export default function Home() {
 
       setMarkdown(data.markdown);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -48,7 +49,7 @@ export default function Home() {
     try {
       await navigator.clipboard.writeText(markdown);
       toast.success("Copied to clipboard!");
-    } catch (err) {
+    } catch {
       toast.error("Failed to copy to clipboard.");
     }
   };
